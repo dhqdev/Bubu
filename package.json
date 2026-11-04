@@ -1,0 +1,17 @@
+{
+  "name": "bubu",
+  "version": "0.1.0",
+  "description": "Bubu: bichinho virtual com vida própria (PWA) e uma rede neural pulsada.",
+  "type": "module",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "celular": "node tools/servidor.mjs",
+    "dev": "node tools/servidor.mjs",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "icones": "node tools/gerar-icones.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

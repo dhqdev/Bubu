@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Bubu</title>
+  <meta name="description" content="Bubu, seu bichinho virtual com vida própria." />
+  <meta name="theme-color" content="#ffb7c9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Bubu" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Tela inicial / escolher jogador -->
+    <section id="tela-inicio" class="tela">
+      <div class="inicio-topo">
+        <div class="logo">Bubu</div>
+        <div class="inicio-bubu" id="inicio-bubu"></div>
+        <p class="sub">Um bichinho com vida própria 🌱</p>
+      </div>
+      <div class="inicio-perfis" id="perfis"></div>
+      <button class="btn grande" id="btn-novo">Novo jogador</button>
+    </section>
+
+    <!-- Pré-cadastro -->
+    <section id="tela-cadastro" class="tela oculto">
+      <form id="form-cadastro" class="cartao">
+        <h1>Vamos começar!</h1>
+        <label>Seu nome
+          <input name="dono" required maxlength="24" autocomplete="given-name" placeholder="Como o Bubu vai te chamar?" />
+        </label>
+        <label>Nome do seu bichinho
+          <input name="bubu" maxlength="16" value="Bubu" />
+        </label>
+        <label>Seu aniversário <small>(opcional, ele vai lembrar 🎂)</small>
+          <input name="aniversario" type="date" />
+        </label>
+        <fieldset>
+          <legend>Cor do ovinho</legend>
+          <div class="cores" id="cadastro-cores"></div>
+        </fieldset>
+        <div class="linha">
+          <button type="button" class="btn claro" id="btn-voltar">Voltar</button>
+          <button type="submit" class="btn">Criar meu Bubu</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Jogo -->
+    <section id="tela-jogo" class="tela oculto">
+      <header class="hud">
+        <button class="moedas" id="hud-moedas" aria-label="moedas">🪙 <b>0</b></button>
+        <div class="barras" id="hud-barras"></div>
+        <button class="icone" id="btn-menu" aria-label="menu">☰</button>
+      </header>
+      <nav class="navcomodo">
+        <button class="seta" id="btn-esq" aria-label="cômodo anterior">◀</button>
+        <div class="nome-comodo" id="nome-comodo">Sala</div>
+        <button class="seta" id="btn-dir" aria-label="próximo cômodo">▶</button>
+      </nav>
+      <main class="cena" id="cena">
+        <div class="cenario" id="cenario"></div>
+        <div class="bubu" id="bubu"></div>
+        <div class="balao oculto" id="balao"></div>
+        <div class="fx" id="fx"></div>
+        <div class="escuro" id="escuro"></div>
+      </main>
+      <footer class="acoes" id="acoes"></footer>
+    </section>
+  </div>
+
+  <div class="sheet-fundo oculto" id="sheet-fundo"></div>
+  <div class="sheet oculto" id="sheet" role="dialog" aria-modal="true"></div>
+  <div class="jogo oculto" id="jogo"></div>
+  <div class="toast" id="toast"></div>
+  <div class="arrastando" id="arrastando"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
