@@ -95,19 +95,36 @@ jobs:
           gh release create "$TAG" deploy/install.sh deploy/bubu-stack.yml deploy/traefik-stack.yml \
             --target "$GITHUB_SHA" --title "Bubu $TAG" --notes-file notas.md --generate-notes --latest
 
+  # Publica o app no GitHub Pages só se o Pages estiver ligado
+  # (Settings → Pages → Source: GitHub Actions). Desligado = o job passa sem fazer nada.
   pages:
     needs: testes
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true # Pages desligado não deve deixar o workflow vermelho
     steps:
+      - name: Pages está ligado?
+        id: ligado
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type 2>/dev/null | grep -qx workflow; then
+            echo "sim=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sim=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages desligado: ligue em Settings → Pages → Source: GitHub Actions para publicar o site."
+          fi
       - uses: actions/checkout@v4
+        if: steps.ligado.outputs.sim == 'true'
       - name: Montar a pasta do site
+        if: steps.ligado.outputs.sim == 'true'
         run: |
           mkdir -p _site
           cp -r index.html manifest.webmanifest sw.js css js icons _site/
       - uses: actions/configure-pages@v5
+        if: steps.ligado.outputs.sim == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: steps.ligado.outputs.sim == 'true'
         with:
           path: _site
       - uses: actions/deploy-pages@v4
+        if: steps.ligado.outputs.sim == 'true'
