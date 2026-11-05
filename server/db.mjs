@@ -2,7 +2,6 @@
  * Banco do Bubu (Postgres): contas, sessões e o save de cada jogador.
  * As tabelas são criadas sozinhas na primeira vez (migrações simples e idempotentes).
  */
-import pg from "pg";
 
 const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS contas (
@@ -28,8 +27,10 @@ const MIGRATIONS = [
    )`,
 ];
 
-export function createPool(url = process.env.DATABASE_URL) {
+// o driver só é carregado quando tem banco (assim os testes sem banco não precisam do npm ci)
+export async function createPool(url = process.env.DATABASE_URL) {
   if (!url) throw new Error("DATABASE_URL não definida");
+  const { default: pg } = await import("pg");
   return new pg.Pool({ connectionString: url, max: 10, idleTimeoutMillis: 30000 });
 }
 
