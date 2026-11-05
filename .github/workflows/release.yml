@@ -1,0 +1,91 @@
+name: Release
+
+# Cada push na main vira uma release nova (v<major>.<minor>.<número da execução>),
+# com a imagem Docker multi-arquitetura no GHCR (amd64 + arm64) e o instalador anexado.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: teste
+          POSTGRES_DB: bubu
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://postgres:teste@localhost:5432/bubu
+
+  release:
+    needs: testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Versão
+        id: v
+        run: |
+          base=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')")
+          echo "tag=v${base}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Imagem (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: BUBU_VERSAO=${{ steps.v.outputs.tag }}
+          tags: |
+            ghcr.io/dhqdev/bubu:${{ steps.v.outputs.tag }}
+            ghcr.io/dhqdev/bubu:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Criar release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          {
+            echo "## Instalar / atualizar na VPS"
+            echo
+            echo '```bash'
+            echo "curl -fsSL https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/install.sh | sudo bash"
+            echo '```'
+            echo
+            echo "Imagem: \`ghcr.io/dhqdev/bubu:${TAG}\` (amd64 e arm64)"
+          } > notas.md
+          gh release create "$TAG" deploy/install.sh deploy/bubu-stack.yml deploy/traefik-stack.yml \
+            --target "$GITHUB_SHA" --title "Bubu $TAG" --notes-file notas.md --generate-notes --latest

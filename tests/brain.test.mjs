@@ -54,3 +54,27 @@ test("aprende com recompensa e salva/carrega", () => {
   assert.deepEqual(c.learned, b.learned);
   assert.equal(c.nSynapses, b.nSynapses);
 });
+
+test("cria sinapses novas com a experiência, poda as que não usa e salva tudo", () => {
+  const b = new Brain(21);
+  const base = b.nSynapses;
+  b.stimulate({ BRINCAR: 1, CARINHO: 0.6 });
+  for (let i = 0; i < 240; i++) { b.step(250); b.grow(0.25, 0.5, "bebe"); }
+  assert.ok(b.grown.size > 100, `cresceu ${b.grown.size}`);
+  assert.equal(b.nSynapses, base + b.grown.size);
+  assert.ok(b.grownSummary(3)[0].n > 0);
+  const c = Brain.fromJSON(JSON.parse(JSON.stringify(b.toJSON())));
+  assert.equal(c.grown.size, b.grown.size);
+  // sem estímulo, as ligações sem uso vão sumindo
+  b.stimulate({});
+  const peak = b.grown.size;
+  for (let i = 0; i < 1600; i++) { b.step(50); b.grow(0.25, 0, "adulto"); }
+  assert.ok(b.stats.podadas > 0 && b.grown.size < peak, `podadas ${b.stats.podadas}, ${b.grown.size}/${peak}`);
+});
+
+test("o ovo não cria sinapses e o bebê tem limite", () => {
+  const b = new Brain(4);
+  b.stimulate({ BRINCAR: 1 });
+  for (let i = 0; i < 40; i++) { b.step(250); b.grow(0.25, 1, "ovo"); }
+  assert.equal(b.grown.size, 0);
+});

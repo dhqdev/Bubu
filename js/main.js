@@ -9,6 +9,10 @@ import { bubuSVG, eggSVG, clothIconSVG, colorOf } from "./bubu-svg.js";
 import * as store from "./store.js";
 import { advance, catchUp, senses, stageOf, nextStage, ageText, worstNeed } from "./life.js";
 import * as mind from "./mind.js";
+import * as cria from "./criatividade.js";
+import { openBrainView } from "./brain-view.js";
+import * as conta from "./conta.js";
+import { FUNDOS, CEUS } from "./items.js";
 import * as gCatch from "./games/catch.js";
 import * as gMemory from "./games/memory.js";
 import * as gBubbles from "./games/bubbles.js";
@@ -76,6 +80,110 @@ function persist() {
   save.ultimoTick = now();
   if (!store.persist(save)) toast("Não consegui salvar 😕 (armazenamento cheio?)");
   S.lastSave = now();
+  if (save.conta) agendarNuvem();
+}
+
+// ---------------- nuvem (quando tem servidor e conta) ----------------
+// no máximo um envio a cada 20 s (o jogo salva toda hora, então não dá para "esperar parar")
+function agendarNuvem(ja = false) {
+  if (ja) clearTimeout(S.nuvemTimer);
+  else if (S.nuvemTimer) return;
+  S.nuvemTimer = setTimeout(() => { S.nuvemTimer = null; enviarNuvem(); }, ja ? 0 : 20000);
+}
+async function enviarNuvem({ keepalive = false } = {}) {
+  if (!save?.conta || S.enviando) return;
+  S.enviando = true;
+  try {
+    const r = await conta.enviarSave(save, { keepalive });
+    if (r.conflito && r.servidor?.dados) {
+      const outro = r.servidor.dados;
+      conta.setVersao(r.servidor.versao);
+      if ((outro.ultimoTick || 0) > (save.ultimoTick || 0)) {
+        // o outro aparelho jogou depois: fica com o dele
+        save = outro;
+        store.persist(save);
+        toast("Peguei o jogo mais novo do seu outro aparelho 📲", 3500);
+        startGame();
+      } else {
+        await conta.enviarSave(save, { forcar: true });
+      }
+    } else if (r.sessao === false) {
+      toast("Sua sessão expirou. Entre de novo para salvar na nuvem.", 4000);
+    }
+    S.nuvemOk = !!r.ok;
+  } catch {
+    S.nuvemOk = false; // offline: tenta de novo depois
+  } finally {
+    S.enviando = false;
+  }
+}
+
+// ---------------- conta (tela de entrar / criar conta) ----------------
+let contaAba = "entrar";
+function renderAccount(msg = "") {
+  const box = $("#conta-form");
+  $("#conta-bubu").innerHTML = bubuSVG({ cor: "marrom", humor: "feliz", fase: "jovem" });
+  $$(".conta-aba").forEach((b) => b.classList.toggle("sel", b.dataset.aba === contaAba));
+  box.innerHTML = contaAba === "entrar"
+    ? `<label>Usuário<input name="usuario" required autocomplete="username" autocapitalize="none" maxlength="24"/></label>
+       <label>Senha<input name="senha" type="password" required autocomplete="current-password" maxlength="200"/></label>
+       <p class="erro">${esc(msg)}</p>
+       <button class="btn grande">Entrar</button>`
+    : `<label>Seu nome<input name="nome" required maxlength="24" autocomplete="given-name" placeholder="Como o Bubu vai te chamar?"/></label>
+       <label>Usuário <small>(para entrar depois)</small><input name="usuario" required autocomplete="username" autocapitalize="none" maxlength="24" pattern="[a-zA-Z0-9._\\-]{3,24}" placeholder="ex: david"/></label>
+       <label>Senha <small>(mínimo 6)</small><input name="senha" type="password" required minlength="6" autocomplete="new-password" maxlength="200"/></label>
+       <p class="erro">${esc(msg)}</p>
+       <button class="btn grande">Criar conta</button>`;
+  show("tela-conta");
+}
+$("#tela-conta").addEventListener("click", (e) => {
+  const aba = e.target.closest(".conta-aba");
+  if (aba) { contaAba = aba.dataset.aba; renderAccount(); }
+  if (e.target.closest("#conta-local")) renderStart();
+});
+$("#conta-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const btn = e.target.querySelector("button");
+  btn.disabled = true;
+  try {
+    if (contaAba === "entrar") {
+      const c = await conta.entrar(String(f.get("usuario")), String(f.get("senha")));
+      await openAccountGame(c);
+    } else {
+      const c = await conta.cadastrar(String(f.get("usuario")), String(f.get("senha")), String(f.get("nome")));
+      S.contaNova = c;
+      renderSignup();
+      $("#form-cadastro [name=dono]").value = c.nome;
+      show("tela-cadastro");
+    }
+  } catch (err) {
+    renderAccount(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/** Entra no jogo de uma conta: usa o save mais novo entre a nuvem e o aparelho. */
+async function openAccountGame(c) {
+  const localId = "conta-" + c.usuario;
+  const local = store.loadSave(localId);
+  let remoto = null;
+  try { remoto = await conta.baixarSave(); } catch { /* offline: fica com o local */ }
+  const escolhido = remoto?.dados && (!local || (remoto.dados.ultimoTick || 0) >= (local.ultimoTick || 0)) ? remoto.dados : local;
+  if (!escolhido) {
+    // conta sem Bubu ainda: vai para a criação do ovinho
+    S.contaNova = c;
+    renderSignup();
+    $("#form-cadastro [name=dono]").value = c.nome;
+    show("tela-cadastro");
+    return;
+  }
+  save = escolhido;
+  save.id = localId;
+  save.conta = c.usuario;
+  store.persist(save);
+  startGame();
 }
 function diary(texto) {
   save.diario.unshift({ t: now(), texto });
@@ -162,7 +270,7 @@ function anim(cls, ms = 900) {
 
 // ---------------- tela inicial ----------------
 function renderStart() {
-  $("#inicio-bubu").innerHTML = bubuSVG({ cor: "pessego", humor: "feliz", fase: "adulto" });
+  $("#inicio-bubu").innerHTML = bubuSVG({ cor: "marrom", humor: "feliz", fase: "adulto" });
   const list = store.listProfiles();
   $("#perfis").innerHTML = list.length
     ? `<p class="rotulo">Continuar como:</p>` + list
@@ -186,13 +294,15 @@ $("#perfis").addEventListener("click", (e) => {
   const b = e.target.closest(".perfil");
   if (b) openProfile(b.dataset.id);
 });
+$("#btn-conta").addEventListener("click", () => renderAccount());
+$("#btn-fundo").addEventListener("click", () => save?.bubu.nascimento && openBackgrounds());
 $("#btn-novo").addEventListener("click", () => {
   renderSignup();
   show("tela-cadastro");
 });
 
 // ---------------- cadastro ----------------
-let chosenColor = "pessego";
+let chosenColor = "marrom";
 function renderSignup() {
   $("#cadastro-cores").innerHTML = COLORS.filter((c) => !c.preco)
     .map((c) => `<button type="button" class="cor ${c.id === chosenColor ? "sel" : ""}" data-cor="${c.id}" style="--c:${c.c};--d:${c.d}" aria-label="${c.nome}"></button>`)
@@ -204,15 +314,21 @@ $("#cadastro-cores").addEventListener("click", (e) => {
   chosenColor = b.dataset.cor;
   renderSignup();
 });
-$("#btn-voltar").addEventListener("click", renderStart);
+$("#btn-voltar").addEventListener("click", () => (S.contaNova ? renderAccount() : renderStart()));
 $("#form-cadastro").addEventListener("submit", (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
   const dono = String(f.get("dono") || "").trim();
   if (!dono) return;
   save = store.newSave({ dono, bubu: String(f.get("bubu") || "Bubu").trim() || "Bubu", cor: chosenColor, aniversario: f.get("aniversario") });
+  if (S.contaNova) {
+    save.id = "conta-" + S.contaNova.usuario;
+    save.conta = S.contaNova.usuario;
+    S.contaNova = null;
+  }
   diary(`${dono} ganhou um ovinho de ${save.bubu.nome}.`);
   store.persist(save);
+  if (save.conta) agendarNuvem(true);
   e.target.reset();
   startGame();
 });
@@ -297,6 +413,10 @@ function renderRoom() {
   const c = $("#cenario");
   c.className = "cenario " + room.id;
   c.innerHTML = ROOM_ART[room.id];
+  const fundoId = save.fundos?.[room.id];
+  const fundo = (room.id === "fora" ? CEUS : FUNDOS).find((f) => f.id === fundoId);
+  const alvo = c.querySelector(room.id === "fora" ? ".ceu" : ".parede");
+  if (fundo && alvo) { alvo.style.background = fundo.css; alvo.classList.add("personalizado"); }
   $("#cena").dataset.room = room.id;
   if (room.id === "fora") {
     const h = new Date().getHours();
@@ -344,7 +464,7 @@ function renderActions() {
     a.innerHTML = actionBtn("aquecer", "🔥", "Aquecer") + actionBtn("menu", "☰", "Menu");
     return;
   }
-  if (room === "sala") a.innerHTML = actionBtn("conversar", "💬", "Conversar") + actionBtn("ensinar", "🎓", "Ensinar") + actionBtn("sentimentos", "💗", "Como ele está");
+  if (room === "sala") a.innerHTML = actionBtn("conversar", "💬", "Conversar") + actionBtn("ensinar", "🎓", "Ensinar") + actionBtn("criacoes", "🖌️", "Criações") + actionBtn("sentimentos", "💗", "Como está");
   if (room === "cozinha") {
     const owned = FOODS.filter((f) => (save.comidas[f.id] || 0) > 0);
     if (S.foodIdx >= owned.length) S.foodIdx = 0;
@@ -370,6 +490,7 @@ $("#acoes").addEventListener("click", (e) => {
     case "conversar": return openChat();
     case "ensinar": return openTeach();
     case "sentimentos": return openFeelings();
+    case "criacoes": return openCreations();
     case "comida-ant": S.foodIdx = (S.foodIdx + owned().length - 1) % Math.max(1, owned().length); return renderActions();
     case "comida-prox": S.foodIdx = (S.foodIdx + 1) % Math.max(1, owned().length); return renderActions();
     case "mercado": return openMarket();
@@ -449,8 +570,8 @@ window.addEventListener("pointermove", (e) => {
   const r = el.getBoundingClientRect();
   const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * 0.45);
   const d = Math.hypot(dx, dy) || 1;
-  S.look = { x: (dx / d) * Math.min(1, d / 150) * (S.facing < 0 ? -1 : 1), y: (dy / d) * Math.min(1, d / 150) };
-  $$(".pupil", el).forEach((p) => (p.style.transform = `translate(${S.look.x * 5}px,${S.look.y * 4}px)`));
+  S.lookTarget = { x: (dx / d) * Math.min(1, d / 150) * (S.facing < 0 ? -1 : 1), y: (dy / d) * Math.min(1, d / 150) };
+  S.lastPointer = now();
   S.lastTouch = now();
 });
 
@@ -722,6 +843,7 @@ function renderChat() {
 }
 function talk(txt) {
   chatLog.push({ de: "eu", txt });
+  cria.aprenderTexto(save, txt);
   S.lastTouch = now();
   if (save.dormindo) { chatLog.push({ de: "bubu", txt: "Zzz... 💤" }); return renderChat(); }
   const r = mind.reply(save, txt, { pendingWord: S.pendingWord, comoEstou: howAmI() });
@@ -784,6 +906,7 @@ function openAnswer(q) {
   setTimeout(() => input.focus(), 200);
   const done = (ans) => {
     const r = mind.answerQuestion(save, q, ans);
+    if (ans) cria.aprenderTexto(save, ans);
     S.question = null;
     closeSheet();
     if (r.aprendeu) {
@@ -834,6 +957,7 @@ function openTeach() {
     const p = String(f.get("p")).trim(), sig = String(f.get("s")).trim();
     m.palavras[p.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")] = { palavra: p, significado: sig };
     m.inteligencia += 2;
+    cria.aprenderTexto(save, `${p} é ${sig}`);
     addReward(0.5); pulse("ELOGIO", 2);
     diary(`Aprendeu: ${p} é ${sig}.`);
     say(`${p} é ${sig}! Entendi! 🤓`);
@@ -888,9 +1012,15 @@ function openFeelings() {
     </div>
     <div class="necessidades">${NEEDS.map((n) => `<div class="nec"><span>${n.emoji} ${n.nome}</span><div class="nec-barra"><i style="width:${save.needs[n.id]}%"></i></div><b>${Math.round(save.needs[n.id])}</b></div>`).join("")}</div>
     <div class="cartao-sec"><h3>Personalidade</h3><p>${traits}</p></div>
+    <div class="cartao-sec"><h3>Caminhos que o cérebro dele criou sozinho</h3>
+      <p class="dica">${brain.grown.size.toLocaleString("pt-BR")} ligações novas (${brain.stats.nascidas.toLocaleString("pt-BR")} nasceram, ${brain.stats.podadas.toLocaleString("pt-BR")} foram podadas). As mais fortes:</p>
+      <ul class="lista">${brain.grownSummary(5).map((g) => `<li>${esc(POOL_TXT[g.de] || g.de.toLowerCase())} → ${esc(POOL_TXT[g.para] || g.para.toLowerCase().replace(/_/g, " "))} <small>(${g.n})</small></li>`).join("") || "<li>Ainda formando... quanto mais vocês vivem juntos, mais caminhos nascem.</li>"}</ul>
+      <button class="btn claro mini" id="ver-cerebro">🧠 Ver o cérebro</button>
+    </div>
     <div class="cartao-sec"><h3>O que a experiência ensinou</h3>
       <ul class="lista">${learned.map((l) => `<li>${esc(POOL_TXT[l.sentido] || l.sentido)} → ${l.peso > 0 ? "mais" : "menos"} ${esc(POOL_TXT[l.emocao] || l.emocao)}</li>`).join("") || "<li>Ainda descobrindo o mundo... faça carinho e elogie quando ele estiver feliz!</li>"}</ul>
     </div>`, "sent-sheet");
+  $("#ver-cerebro", s).onclick = () => { closeSheet(); openBrain(); };
   return s;
 }
 function personalityText() {
@@ -907,44 +1037,92 @@ function personalityText() {
   return t.length ? `${esc(save.bubu.nome)} é ${t.join(", ")}.` : `${esc(save.bubu.nome)} é equilibrado. 🌱`;
 }
 
-// ---- cérebro (monitor neural) ----
+// ---- cérebro (tela cheia com todos os neurônios e ligações) ----
 function openBrain() {
+  const box = $("#cerebro-tela");
+  box.classList.remove("oculto");
+  S.sheet = "cerebro";
+  openBrainView(box, brain, { nome: esc(save.bubu.nome), onClose: () => { box.classList.add("oculto"); S.sheet = null; } });
+}
+
+// ---- criações ----
+function openCreations(focoId) {
+  const lista = save.mente.criacoes || [];
+  const gosto = save.mente.gosto || {};
+  const fav = Object.entries(gosto).sort((a, b) => b[1] - a[1])[0];
   const s = openSheet(`
-    <h2>Cérebro de ${esc(save.bubu.nome)} 🧠</h2>
-    <p class="dica">${brain.N} neurônios e ${brain.nSynapses} sinapses. Cada bolinha é um grupo de neurônios: quanto mais brilha, mais está disparando agora.</p>
-    <canvas id="cerebro" class="cerebro-canvas"></canvas>
-    <div id="motores" class="motores"></div>`, "cerebro-sheet");
-  const cv = $("#cerebro", s);
-  const draw = () => {
-    if (S.sheet !== "cerebro-sheet") return;
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    const W = cv.clientWidth, H = cv.clientHeight;
-    cv.width = W * dpr; cv.height = H * dpr;
-    const ctx = cv.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    const rates = brain.rates();
-    const cols = [brain.senseNames, INTER.map((i) => i[0]), MOTORS.map((m) => m[0])];
-    const pos = {};
-    cols.forEach((names, ci) => names.forEach((n, i) => (pos[n] = { x: W * (0.12 + ci * 0.38), y: (H * (i + 0.5)) / names.length })));
-    for (const [name, p] of Object.entries(pos)) {
-      const r = rates[name] || 0;
-      const k = Math.min(1, r / 25);
-      const isS = brain.senseNames.includes(name), isM = cols[2].includes(name);
-      ctx.beginPath();
-      ctx.fillStyle = isS ? `rgba(80,180,255,${0.15 + k * 0.85})` : isM ? `rgba(255,110,160,${0.15 + k * 0.85})` : `rgba(140,110,255,${0.15 + k * 0.85})`;
-      ctx.arc(p.x, p.y, 5 + k * 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#4a3a55";
-      ctx.font = "10px Fredoka, system-ui";
-      ctx.textAlign = isM ? "right" : "left";
-      ctx.fillText((POOL_TXT[name] || name.toLowerCase()).slice(0, 18), p.x + (isM ? -14 : 14), p.y + 3);
-    }
+    <h2>Criações de ${esc(save.bubu.nome)} 🖌️</h2>
+    <p class="dica">Ele cria sozinho, juntando o que aprendeu com você: as palavras que você usa, o que ensinou e o que respondeu. Dê 👍 no que gostar: ele vai fazer mais daquilo.${fav && lista.length ? ` Agora ele anda gostando de fazer <b>${cria.NOME_TIPO[fav[0]].toLowerCase()}s</b>.` : ""}</p>
+    <button class="btn mini" id="cria-agora">✨ Pedir para criar agora</button>
+    <div class="criacoes">${lista.map((c) => `
+      <div class="criacao ${c.id === focoId ? "foco" : ""}" data-id="${esc(c.id)}">
+        <div class="criacao-topo"><b>${esc(c.titulo)}</b><small>${cria.NOME_TIPO[c.tipo]} · ${new Date(c.em).toLocaleDateString("pt-BR")}</small></div>
+        ${c.desenho ? cria.desenhoSVG(c.desenho) : ""}
+        ${c.emojis ? `<div class="criacao-emojis">${c.emojis.join(" ➕ ")}</div>` : ""}
+        ${c.texto ? `<p class="criacao-txt">${esc(c.texto).replace(/\n/g, "<br>")}</p>` : ""}
+        <div class="linha">
+          ${c.notas ? `<button class="btn claro mini" data-tocar>▶ Ouvir</button>` : ""}
+          ${c.gostou === null ? `<button class="btn mini" data-av="1">👍</button><button class="btn claro mini" data-av="0">👎</button>` : `<span class="dica">${c.gostou ? "Você gostou 💖" : "Você não curtiu"}</span>`}
+        </div>
+      </div>`).join("") || `<p class="dica">Nada ainda! Converse bastante, ensine palavras e responda as perguntas dele. Quando estiver tranquilo e inspirado, ele cria.</p>`}</div>`, "criacoes-sheet");
+  s.querySelector(".criacao.foco")?.scrollIntoView({ block: "center" });
+  $("#cria-agora", s).onclick = () => {
+    if (save.dormindo) return toast("Ele está dormindo 💤");
     const m = brain.motors();
-    $("#motores", s).innerHTML = Object.entries(m).map(([k, v]) => `<div class="mot"><span>${k.toLowerCase().replace("_", " ")}</span><i style="width:${Math.min(100, v * 4)}%"></i><b>${v.toFixed(0)} Hz</b></div>`).join("");
+    if (m.TRISTE > 6 || m.BRAVO > 6 || save.needs.energia < 15) return say("Agora não tô inspirado... 😕", { forcar: true });
+    const c = cria.criar(save);
+    if (!c) return say("Ainda não sei o bastante pra criar... me ensina mais coisas!", { forcar: true });
+    if (c.tipo === "musica") cria.tocar(c.notas);
+    diary(`${save.bubu.nome} criou: ${c.titulo}.`);
+    persist();
+    openCreations(c.id);
   };
-  draw();
-  S.brainTimer = setInterval(draw, 400);
+  s.querySelector(".criacoes").onclick = (e) => {
+    const card = e.target.closest(".criacao");
+    if (!card) return;
+    const c = lista.find((x) => x.id === card.dataset.id);
+    if (e.target.closest("[data-tocar]")) return cria.tocar(c.notas);
+    const av = e.target.closest("[data-av]");
+    if (av) {
+      const bom = av.dataset.av === "1";
+      cria.avaliar(save, c.id, bom);
+      addReward(bom ? 1 : -0.3);
+      pulse(bom ? "ELOGIO" : "BRONCA", 2, bom ? 1 : 0.3);
+      say(bom ? pick(["Ebaaa! Vou fazer mais! 🥰", "Sabia que você ia gostar!"]) : pick(["Hmm, vou caprichar mais na próxima...", "Tá bom... 😔"]), { forcar: true, ms: 2500 });
+      persist();
+      openCreations(c.id);
+    }
+  };
+}
+
+// ---- fundo do cômodo ----
+function openBackgrounds() {
+  const room = ROOMS[roomIdx].id;
+  const list = room === "fora" ? CEUS : FUNDOS;
+  save.fundos ||= {};
+  save.fundosComprados ||= [];
+  const atual = save.fundos[room] || "padrao";
+  const s = openSheet(`
+    <h2>Fundo da ${esc(ROOMS[roomIdx].nome.toLowerCase())} 🎨 <small class="moedas-inline">🪙 ${save.moedas}</small></h2>
+    <div class="grade-itens">${[{ id: "padrao", nome: "Original", css: "", preco: 0 }, ...list].map((f) => {
+      const tem = !f.preco || save.fundosComprados.includes(f.id);
+      return `<button class="item ${atual === f.id ? "sel" : ""}" data-f="${f.id}"><span class="fundo-amostra" style="background:${f.css || "var(--suave)"}">${f.id === "padrao" ? "🏠" : ""}</span><span>${esc(f.nome)}</span><small>${atual === f.id ? "usando" : tem ? "tocar p/ usar" : "🪙 " + f.preco}</small></button>`;
+    }).join("")}</div>`, "fundos-sheet");
+  s.querySelector(".grade-itens").onclick = (e) => {
+    const b = e.target.closest("[data-f]");
+    if (!b) return;
+    const f = list.find((x) => x.id === b.dataset.f);
+    if (f && f.preco && !save.fundosComprados.includes(f.id)) {
+      if (save.moedas < f.preco) return toast("Moedas insuficientes! 🎮");
+      save.moedas -= f.preco;
+      save.fundosComprados.push(f.id);
+    }
+    if (b.dataset.f === "padrao") delete save.fundos[room]; else save.fundos[room] = f.id;
+    renderRoom(); renderHud(); persist();
+    pulse("NOVIDADE", 2);
+    if (cool("fundo-fala", 5000)) say(pick(["Que lindo! 😍", "Amei a decoração!", "Ficou muito mais bonito!"]), { ms: 2000 });
+    openBackgrounds();
+  };
 }
 
 // ---- mercado ----
@@ -1080,7 +1258,7 @@ function openMenu() {
     <h2>Menu</h2>
     <div class="cartao-sec">
       <p>Jogador: <b>${esc(save.dono.nome)}</b> · Bichinho: <b>${esc(save.bubu.nome)}</b></p>
-      <button class="btn claro mini" id="m-trocar">Trocar de jogador</button>
+      ${save.conta ? `<p class="dica">Conta: <b>${esc(save.conta)}</b> · ${S.nuvemOk === false ? "sem conexão, salvo no aparelho" : "salvo na nuvem ☁️"}</p><button class="btn claro mini" id="m-sair">Sair da conta</button>` : `<button class="btn claro mini" id="m-trocar">Trocar de jogador</button>`}
     </div>
     <div class="cartao-sec">
       <h3>Configurações</h3>
@@ -1104,7 +1282,16 @@ function openMenu() {
       <div class="linha"><button class="btn claro mini" id="m-exportar">Baixar save</button><label class="btn claro mini">Carregar save<input type="file" id="m-importar" accept=".json,application/json" hidden/></label></div>
     </div>
     <p class="dica">Bubu v0.1 · cérebro adaptado do <a href="https://github.com/mille-okws/pestinha" target="_blank" rel="noopener">Pestinha</a></p>`, "menu-sheet");
-  $("#m-trocar", s).onclick = () => { persist(); closeSheet(); stopLoop(); save = null; renderStart(); };
+  const trocar = $("#m-trocar", s);
+  if (trocar) trocar.onclick = () => { persist(); closeSheet(); stopLoop(); save = null; renderStart(); };
+  const sairBtn = $("#m-sair", s);
+  if (sairBtn) sairBtn.onclick = async () => {
+    persist();
+    await enviarNuvem();
+    await conta.sair();
+    closeSheet(); stopLoop(); save = null;
+    renderAccount();
+  };
   $("#m-voz", s).onchange = (e) => { c.voz = e.target.checked; persist(); };
   $("#m-ritmo", s).onchange = (e) => { c.ritmo = +e.target.value; persist(); toast("Ritmo alterado!"); };
   $("#m-exportar", s).onclick = () => {
@@ -1228,9 +1415,12 @@ function startLoop() {
     if (Math.random() < 0.25 / 30) pulse("NOVIDADE", 2, 0.5 + Math.random() * 0.5);
     const sense = senses(save, extra);
     sense.TEDIO = Math.max(sense.TEDIO, idle * 0.6);
+    sense.SABER = cria.saber(save);
     brain.stimulate(sense);
     brain.step(250);
     if (brain.learn(clamp(S.reward, -1, 1), 0.25, 0.03)) S.learnedChanged = true;
+    // plasticidade estrutural: ele mesmo cria e poda ligações conforme vive
+    brain.grow(0.25, clamp(S.reward, -1, 1), stageOf(save).id);
     S.reward *= 0.5;
     if (Math.abs(S.reward) < 0.05) S.reward = 0;
     decide(brain.motors());
@@ -1254,10 +1444,37 @@ function startLoop() {
         positionBalloon();
       } else $("#bubu").classList.remove("andando");
       ballStep(dt);
+      moveEyes(dt);
     }
     rafId = requestAnimationFrame(frame);
   };
   rafId = requestAnimationFrame(frame);
+}
+
+// olhos: seguem o dedo; sem dedo por perto, passeiam sozinhos (olham a bola, para onde andam, para os lados...)
+function moveEyes(dt) {
+  const t = now();
+  if (!S.lookTarget) S.lookTarget = { x: 0, y: 0 };
+  if (t - (S.lastPointer || 0) > 2500) {
+    if (S.ball) {
+      const dx = S.ball.x - S.x;
+      S.lookTarget = { x: clamp(dx / 25, -1, 1) * (S.facing < 0 ? -1 : 1), y: S.ball.y > 10 ? -0.6 : 0.5 };
+    } else if (S.walking) S.lookTarget = { x: 0.8, y: 0.1 };
+    else if (t > (S.nextGlance || 0)) {
+      const mood = currentMood();
+      S.lookTarget = mood === "triste" ? { x: (Math.random() - 0.5) * 0.6, y: 0.7 }
+        : mood === "curioso" ? { x: (Math.random() - 0.5) * 2, y: -0.5 - Math.random() * 0.4 }
+        : Math.random() < 0.35 ? { x: 0, y: 0 } : { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 1.4 };
+      S.nextGlance = t + 900 + Math.random() * 2600;
+    }
+  }
+  const k = Math.min(1, dt * 10);
+  S.look = { x: S.look.x + (S.lookTarget.x - S.look.x) * k, y: S.look.y + (S.lookTarget.y - S.look.y) * k };
+  const px = (S.look.x * 5).toFixed(2), py = (S.look.y * 4).toFixed(2);
+  if (px !== S._px || py !== S._py) {
+    S._px = px; S._py = py;
+    $$("#bubu .pupil").forEach((el) => (el.style.transform = `translate(${px}px,${py}px)`));
+  }
 }
 
 // decisões a partir dos motores da rede
@@ -1286,6 +1503,19 @@ function decide(m) {
   if (m.PERGUNTAR > 5 && !sheetOpen && !S.question && now() > S.firstQuestionAt && stageOf(save).id !== "ovo" && cool("pergunta", 150000)) {
     if (askQuestion()) return;
   }
+  if (m.CRIAR > 5 && !sheetOpen && cool("criar", 4 * 60000)) {
+    const c = cria.criar(save);
+    if (c) {
+      diary(`${save.bubu.nome} criou: ${c.titulo}.`);
+      fx(c.tipo === "musica" ? "🎵" : c.tipo === "desenho" ? "🖍️" : "💡", 4);
+      if (c.tipo === "musica") cria.tocar(c.notas);
+      say(pick([`Olha o que eu fiz! ${cria.NOME_TIPO[c.tipo]}: ${c.titulo}`, `Tive uma ideia! ${c.titulo} ✨`, `Criei uma coisa pra você!`]), {
+        acoes: [{ txt: "Ver 👀", fn: () => openCreations(c.id) }],
+      });
+      persist();
+      return;
+    }
+  }
   if (m.BRINCAR_SOZINHO > 6 && cool("brincar-sozinho", 12000)) {
     doTrick(pick(TRICKS.filter((t) => ["pular", "girar", "dancar"].includes(t.id))));
     if (Math.random() < 0.4) say(pick(["Wiii! 🎶", "Lá lá lá!", "Olha eu!"]), { ms: 1500 });
@@ -1302,7 +1532,7 @@ function decide(m) {
 // ---------------- ciclo do app ----------------
 document.addEventListener("visibilitychange", () => {
   if (!save) return;
-  if (document.hidden) persist();
+  if (document.hidden) { persist(); if (save.conta) enviarNuvem({ keepalive: true }); }
   else {
     const evs = catchUp(save);
     S.lastLife = now();
@@ -1314,7 +1544,14 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => save && persist());
 
 // iniciar
-function boot() {
+async function boot() {
+  S.online = await conta.servidorDisponivel();
+  $("#btn-conta")?.classList.toggle("oculto", !S.online);
+  if (S.online) {
+    const c = await conta.eu();
+    if (c) return openAccountGame(c === "offline" ? conta.conta() : c);
+    return renderAccount();
+  }
   const last = store.lastProfileId();
   if (last && store.loadSave(last)) openProfile(last);
   else renderStart();

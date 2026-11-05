@@ -113,7 +113,7 @@ function clothes(outfit = {}) {
  * opts: { cor, humor, fase, roupa, olhar:{x,y}, comendo, sujeira (0..1), doente, piscando }
  */
 export function bubuSVG(opts) {
-  const { cor = "pessego", humor = "neutro", fase = "bebe", roupa = {}, olhar = { x: 0, y: 0 }, comendo = false, sujeira = 0, doente = false } = opts;
+  const { cor = "marrom", humor = "neutro", fase = "bebe", roupa = {}, olhar = { x: 0, y: 0 }, comendo = false, sujeira = 0, doente = false } = opts;
   if (fase === "ovo") return eggSVG(opts);
   const col = colorOf(cor);
   const cl = clothes(roupa);
@@ -154,7 +154,7 @@ export function bubuSVG(opts) {
   </svg>`;
 }
 
-export function eggSVG({ cor = "pessego", calor = 0 }) {
+export function eggSVG({ cor = "marrom", calor = 0 }) {
   const col = colorOf(cor);
   const crack = calor > 0.4 ? `<path d="M60 96 L76 108 L88 94 L102 110 L116 96 L130 108 L142 98" stroke="${INK}" stroke-width="3" fill="none" stroke-linejoin="round"/>` : "";
   const crack2 = calor > 0.75 ? `<path d="M100 40 L94 56 L104 64 L98 76" stroke="${INK}" stroke-width="3" fill="none"/>` : "";
@@ -171,7 +171,7 @@ export function eggSVG({ cor = "pessego", calor = 0 }) {
 }
 
 /** Ícone pequeno de uma roupa (para o guarda-roupa). */
-export function clothIconSVG(item, cor = "pessego") {
+export function clothIconSVG(item, cor = "marrom") {
   const outfit = { [item.slot]: item.id };
   const vb = item.slot === "cabeca" ? "10 -14 180 120" : item.slot === "olhos" ? "30 60 140 80" : "10 110 180 90";
   const inner = bubuSVG({ cor, humor: "neutro", fase: "jovem", roupa: outfit }).replace(/viewBox="[^"]+"/, `viewBox="${vb}"`);
