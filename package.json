@@ -1,6 +1,6 @@
 {
   "name": "bubu",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bubu: bichinho virtual com vida própria (PWA) e uma rede neural pulsada.",
   "type": "module",
   "private": true,

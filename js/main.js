@@ -12,6 +12,8 @@ import * as mind from "./mind.js";
 import * as cria from "./criatividade.js";
 import { openBrainView } from "./brain-view.js";
 import * as conta from "./conta.js";
+import { som, destravar, setLigado } from "./sons.js";
+import * as ouvido from "./ouvir.js";
 import { FUNDOS, CEUS } from "./items.js";
 import * as gCatch from "./games/catch.js";
 import * as gMemory from "./games/memory.js";
@@ -231,7 +233,10 @@ function say(text, { acoes = [], ms = 4500, falar = true, forcar = false } = {})
   clearTimeout(say._t);
   if (!acoes.length) say._t = setTimeout(hideBalloon, ms);
   else say._t = setTimeout(hideBalloon, Math.max(ms, 15000));
-  if (falar) speak(main);
+  if (falar) {
+    if (baby || !save?.config.voz || !("speechSynthesis" in window)) som.falar(main, st === "bebe" ? 1.5 : st === "idoso" ? 0.8 : 1.15);
+    if (!baby) speak(main);
+  }
   positionBalloon();
 }
 function hideBalloon() {
@@ -294,6 +299,7 @@ $("#perfis").addEventListener("click", (e) => {
   const b = e.target.closest(".perfil");
   if (b) openProfile(b.dataset.id);
 });
+document.addEventListener("pointerdown", () => destravar(), { capture: true });
 $("#btn-conta").addEventListener("click", () => renderAccount());
 $("#btn-fundo").addEventListener("click", () => save?.bubu.nascimento && openBackgrounds());
 $("#btn-novo").addEventListener("click", () => {
@@ -347,6 +353,7 @@ function startGame() {
   roomIdx = save.bubu.nascimento ? 0 : 0;
   S.x = 50; S.targetX = 50;
   show("tela-jogo");
+  setLigado(save.config.som !== false);
   hideBalloon();
   renderRoom();
   renderHud();
@@ -511,16 +518,19 @@ function warmEgg() {
   if (save.bubu.nascimento) return;
   save.bubu.calor = clamp(save.bubu.calor + 0.09, 0, 1);
   anim("balancar", 600);
+  som.ovo();
   fx("🔥", 2, { top: 0.7 });
   navigator.vibrate?.(20);
   renderBubu(true);
   if (save.bubu.calor >= 1) hatch();
 }
 function hatch() {
+  $("#toast").classList.remove("ver");
   save.bubu.nascimento = now();
   save.idadeH = 0;
   save.ultimoTick = now();
   diary(`${save.bubu.nome} nasceu! 🐣`);
+  som.nascer();
   fx("✨", 12);
   fx("🥚", 3);
   anim("nascer", 1200);
@@ -607,7 +617,7 @@ function pet() {
   pulse("CARINHO", 1.5);
   addReward(0.6);
   S.override = "carinho"; S.overrideUntil = now() + 1500;
-  if (Math.random() < 0.35) fx("💗", 1);
+  if (Math.random() < 0.35) { fx("💗", 1); som.carinho(); }
   renderBubu();
   if (save.needs.afeto > 99 && cool("cheio-carinho", 20000)) say(pick(["Hihi, tá bom, tá bom! 🥰", "Eu te amo também!", "Que gostosinho!"]));
 }
@@ -621,6 +631,7 @@ function poke() {
     return;
   }
   pulse("CUTUCADA", 1.5);
+  som.cutucada();
   save.needs.diversao = clamp(save.needs.diversao + 0.7);
   anim("pulo", 600);
   navigator.vibrate?.(15);
@@ -689,9 +700,10 @@ function feed(id) {
   S.eating = true;
   renderBubu();
   anim("mastigar", 900);
+  som.comer();
   setTimeout(() => { S.eating = false; renderBubu(); }, 900);
-  if (g > 1) { addReward(0.5); S.override = "feliz"; S.overrideUntil = now() + 2500; fx("😋", 2); say(pick([`Hmm! ${f.nome} é muito bom!`, "Delíciaaa! 😋", "Quero mais!"]), { ms: 2500 }); }
-  else if (g < -1) { S.override = "bravo"; S.overrideUntil = now() + 2000; say(pick([`Eca, ${f.nome.toLowerCase()}... 🤢`, "Blergh! Mas tudo bem..."]), { ms: 2500 }); }
+  if (g > 1) { setTimeout(som.gostou, 750); addReward(0.5); S.override = "feliz"; S.overrideUntil = now() + 2500; fx("😋", 2); say(pick([`Hmm! ${f.nome} é muito bom!`, "Delíciaaa! 😋", "Quero mais!"]), { ms: 2500 }); }
+  else if (g < -1) { setTimeout(som.eca, 750); S.override = "bravo"; S.overrideUntil = now() + 2000; say(pick([`Eca, ${f.nome.toLowerCase()}... 🤢`, "Blergh! Mas tudo bem..."]), { ms: 2500 }); }
   else if (cool("comer-fala", 6000)) say(pick(["Nham nham!", "Obrigado!", "Hmm!"]), { ms: 1800 });
   renderActions();
   renderHud();
@@ -702,7 +714,7 @@ function scrub() {
   save.needs.higiene = clamp(save.needs.higiene + 0.6);
   S.foam = clamp(S.foam + 0.03, 0, 1);
   pulse("BANHO", 1.5);
-  if (Math.random() < 0.25) fx("🫧", 1, { cls: "bolha-fx" });
+  if (Math.random() < 0.25) { fx("🫧", 1, { cls: "bolha-fx" }); som.espuma(); }
   if (Math.random() < 0.1) renderBubu(true);
   const espuma = $("#bubu .espuma");
   if (espuma) espuma.style.opacity = S.foam;
@@ -711,6 +723,7 @@ function scrub() {
 function shower() {
   if (save.dormindo) return say("Zzz...");
   $("#cena").classList.add("chuveiro-on");
+  som.chuveiro();
   pulse("BANHO", 3);
   save.needs.higiene = clamp(save.needs.higiene + (S.foam > 0.4 ? 40 : 15));
   save.stats.banhos++;
@@ -719,6 +732,7 @@ function shower() {
     S.foam = 0;
     renderBubu(true);
     fx("✨", 5);
+    som.brilho();
     say(save.needs.higiene > 90 ? pick(["Cheirosinho! ✨", "Que banho bom!"]) : "Ainda tô meio sujinho...", { ms: 2500 });
     renderHud();
   }, 1800);
@@ -734,6 +748,7 @@ function giveMedicine() {
 // ---------------- luz / sono ----------------
 function toggleLight() {
   save.luz = !save.luz;
+  (save.luz ? som.luzOn : som.luzOff)();
   if (!save.luz) {
     if (save.needs.energia < 92) { save.dormindo = true; say("Boa noite... 🌙", { ms: 2000 }); diary(`${save.bubu.nome} foi dormir.`); }
     else say("Mas eu não tô com sono! 😤", { ms: 2500 });
@@ -765,6 +780,7 @@ function kickBall(e) {
   const tx = ((e.clientX - r.left) / r.width) * 100;
   S.ball.vx = (tx - S.ball.x) * 1.8;
   S.ball.vy = 90;
+  som.chute();
   pulse("BRINCAR", 3);
 }
 function ballStep(dt) {
@@ -801,6 +817,7 @@ function openSheet(html, cls = "") {
   return s;
 }
 function closeSheet() {
+  if (S.sheet === "chat-sheet") ouvido.parar();
   $("#sheet").className = "sheet oculto";
   $("#sheet-fundo").classList.add("oculto");
   S.sheet = null;
@@ -832,7 +849,17 @@ function openChat(prefill) {
     input.placeholder = S.pendingWord ? `O que é ${S.pendingWord}?` : "Escreva algo...";
   };
   const mic = $("#chat-mic", s);
-  if (mic) mic.onclick = () => listen((t) => { input.value = t; });
+  if (mic) mic.onclick = () => {
+    if (ouvido.ouvindo()) return ouvido.parar();
+    mic.classList.add("on");
+    som.ouvindo();
+    ouvido.ouvir({
+      onParcial: (t) => { input.value = t; },
+      onTexto: (t) => { input.value = ""; talk(t); },
+      onErro: (m) => toast(m, 3500),
+      onFim: () => { mic.classList.remove("on"); som.parouOuvir(); },
+    });
+  };
 }
 function renderChat() {
   const c = $("#chat");
@@ -864,17 +891,38 @@ function talk(txt) {
   if (r.irPara) setTimeout(() => { closeSheet(); goRoom(r.irPara); }, 1200);
   renderChat();
 }
-function listen(cb) {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  try {
-    const rec = new SR();
-    rec.lang = "pt-BR";
-    rec.onresult = (e) => cb(e.results[0][0].transcript);
-    rec.onerror = () => toast("Não consegui ouvir 🎤");
-    rec.start();
-    toast("Fale agora... 🎤");
-  } catch { toast("Microfone indisponível"); }
+// ---- ele te ouve (botão 👂 na cena) ----
+function hear() {
+  const btn = $("#btn-ouvir");
+  if (ouvido.ouvindo()) return ouvido.parar();
+  if (!save?.bubu.nascimento) return;
+  if (!ouvido.suportado()) return toast("Este navegador não deixa ele ouvir 😢 Use o chat 💬", 3500);
+  btn.classList.add("on");
+  som.ouvindo();
+  S.override = "curioso"; S.overrideUntil = now() + 12000;
+  S.lookTarget = { x: 0, y: -0.6 };
+  renderBubu();
+  say(save.dormindo ? "Zzz... 👂" : pick(["Tô ouvindo! 👂", "Fala! 👂", "Hm? Pode falar 👂"]), { ms: 12000, forcar: true, falar: false });
+  pulse("NOVIDADE", 2, 0.6);
+  ouvido.ouvir({
+    onParcial: (t) => { const b = $("#balao .balao-txt"); if (b) b.textContent = `👂 "${t}"`; },
+    onTexto: (t) => {
+      S.override = null;
+      pulse("ELOGIO", 1, 0.3);
+      talk(t);
+    },
+    onErro: (m) => toast(m, 3500),
+    onFim: (motivo) => {
+      btn.classList.remove("on");
+      som.parouOuvir();
+      if (S.override === "curioso") S.override = null;
+      if (motivo === "silencio" || motivo === "tempo") say(pick(["Não ouvi nada... 🤔", "Hã? Fala de novo?"]), { ms: 2500, forcar: true });
+      else if (motivo !== "ok") hideBalloon();
+      renderBubu();
+    },
+  });
 }
+$("#btn-ouvir").addEventListener("click", hear);
 function howAmI() {
   const w = worstNeed(save);
   if (w) return `Tô ${MOOD_TXT[currentMood()] || "bem"}... ${mind.helpPhrase(w)}`;
@@ -887,6 +935,7 @@ function askQuestion() {
   if (!q) return false;
   S.question = q;
   save.stats.perguntas++;
+  som.pergunta();
   say(q.txt, {
     acoes: [
       { txt: "Responder", fn: () => setTimeout(() => openAnswer(q), 0) },
@@ -1113,8 +1162,8 @@ function openBackgrounds() {
     if (!b) return;
     const f = list.find((x) => x.id === b.dataset.f);
     if (f && f.preco && !save.fundosComprados.includes(f.id)) {
-      if (save.moedas < f.preco) return toast("Moedas insuficientes! 🎮");
-      save.moedas -= f.preco;
+      if (save.moedas < f.preco) return som.erro(), toast("Moedas insuficientes! 🎮");
+      som.comprar(); save.moedas -= f.preco;
       save.fundosComprados.push(f.id);
     }
     if (b.dataset.f === "padrao") delete save.fundos[room]; else save.fundos[room] = f.id;
@@ -1134,8 +1183,8 @@ function openMarket() {
     const b = e.target.closest(".item");
     if (!b) return;
     const f = FOODS.find((x) => x.id === b.dataset.id);
-    if (save.moedas < f.preco) return toast("Moedas insuficientes! Jogue lá fora para ganhar 🎮");
-    save.moedas -= f.preco;
+    if (save.moedas < f.preco) return som.erro(), toast("Moedas insuficientes! Jogue lá fora para ganhar 🎮");
+    som.comprar(); save.moedas -= f.preco;
     save.comidas[f.id] = (save.comidas[f.id] || 0) + 1;
     renderHud(); renderActions();
     openMarket();
@@ -1171,8 +1220,8 @@ function openWardrobe() {
     if (r) {
       const c = CLOTHES.find((x) => x.id === r.dataset.roupa);
       if (!save.roupas.includes(c.id)) {
-        if (save.moedas < c.preco) return toast("Moedas insuficientes! 🎮");
-        save.moedas -= c.preco; save.roupas.push(c.id); toast(`Comprou ${c.nome}!`);
+        if (save.moedas < c.preco) return som.erro(), toast("Moedas insuficientes! 🎮");
+        som.comprar(); save.moedas -= c.preco; save.roupas.push(c.id); toast(`Comprou ${c.nome}!`);
       }
       if (save.roupa[c.slot] === c.id) delete save.roupa[c.slot]; else save.roupa[c.slot] = c.id;
       return afterDress(true);
@@ -1181,8 +1230,8 @@ function openWardrobe() {
     if (k) {
       const c = COLORS.find((x) => x.id === k.dataset.cor);
       if (!save.cores.includes(c.id)) {
-        if (save.moedas < c.preco) return toast("Moedas insuficientes! 🎮");
-        save.moedas -= c.preco; save.cores.push(c.id);
+        if (save.moedas < c.preco) return som.erro(), toast("Moedas insuficientes! 🎮");
+        som.comprar(); save.moedas -= c.preco; save.cores.push(c.id);
       }
       save.bubu.cor = c.id;
       afterDress(true);
@@ -1222,6 +1271,7 @@ function playGame(g) {
     pulse("BRINCAR", 5);
     save.moedas += coins;
     save.stats.jogos++;
+    som.vitoria();
     const rec = (save.stats.recorde ||= {});
     const novo = score > (rec[g.info.id] || 0);
     if (novo) rec[g.info.id] = score;
@@ -1263,6 +1313,7 @@ function openMenu() {
     <div class="cartao-sec">
       <h3>Configurações</h3>
       <label class="op"><input type="checkbox" id="m-voz" ${c.voz ? "checked" : ""}/> Voz do ${esc(save.bubu.nome)}</label>
+      <label class="op"><input type="checkbox" id="m-som" ${c.som !== false ? "checked" : ""}/> Sons e efeitos</label>
       <label class="op">Ritmo da vida
         <select id="m-ritmo">
           <option value="1" ${c.ritmo == 1 ? "selected" : ""}>Normal (vive ~30 dias)</option>
@@ -1281,7 +1332,7 @@ function openMenu() {
       <h3>Backup</h3>
       <div class="linha"><button class="btn claro mini" id="m-exportar">Baixar save</button><label class="btn claro mini">Carregar save<input type="file" id="m-importar" accept=".json,application/json" hidden/></label></div>
     </div>
-    <p class="dica">Bubu v0.1 · cérebro adaptado do <a href="https://github.com/mille-okws/pestinha" target="_blank" rel="noopener">Pestinha</a></p>`, "menu-sheet");
+    <p class="dica">Bubu v0.3 · cérebro adaptado do <a href="https://github.com/mille-okws/pestinha" target="_blank" rel="noopener">Pestinha</a></p>`, "menu-sheet");
   const trocar = $("#m-trocar", s);
   if (trocar) trocar.onclick = () => { persist(); closeSheet(); stopLoop(); save = null; renderStart(); };
   const sairBtn = $("#m-sair", s);
@@ -1293,6 +1344,7 @@ function openMenu() {
     renderAccount();
   };
   $("#m-voz", s).onchange = (e) => { c.voz = e.target.checked; persist(); };
+  $("#m-som", s).onchange = (e) => { c.som = e.target.checked; setLigado(c.som); persist(); if (c.som) som.moeda(); };
   $("#m-ritmo", s).onchange = (e) => { c.ritmo = +e.target.value; persist(); toast("Ritmo alterado!"); };
   $("#m-exportar", s).onclick = () => {
     persist();
@@ -1386,7 +1438,7 @@ function handleEvents(evs, quiet = false) {
 
 // ---------------- loop: corpo, cérebro e vida ----------------
 let loopTimer = null, rafId = null;
-function stopLoop() { clearInterval(loopTimer); cancelAnimationFrame(rafId); loopTimer = null; }
+function stopLoop() { clearInterval(loopTimer); cancelAnimationFrame(rafId); loopTimer = null; ouvido.parar(); }
 function startLoop() {
   stopLoop();
   let last = performance.now();

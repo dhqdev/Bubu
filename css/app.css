@@ -400,3 +400,8 @@ legend { font-weight: 600; margin-bottom: 8px; }
 .cv-stats span { font-size: .66rem; opacity: .7; }
 .cv-stats .cv-agora { grid-column: 1 / -1; font-size: .78rem; text-align: left; padding: 6px 10px; }
 .cv-agora i { opacity: .6; font-style: normal; }
+
+/* ---------- v0.3: ouvir ---------- */
+.btn-ouvir { position: absolute; right: 10px; top: 10px; z-index: 6; width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.9); font-size: 1.35rem; box-shadow: var(--sombra); }
+.btn-ouvir.on, #chat-mic.on { background: #ff5c7a; color: #fff; animation: ouvindo 1s ease-in-out infinite; }
+@keyframes ouvindo { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,92,122,.55); } 50% { box-shadow: 0 0 0 10px rgba(255,92,122,0); } }

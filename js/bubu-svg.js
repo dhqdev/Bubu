@@ -1,5 +1,6 @@
 /**
- * Desenho do Bubu em SVG (original): um mochi fofinho com um brotinho na cabeça que cresce
+ * Desenho do Bubu em SVG (original): uma gotinha marrom, larga embaixo e redondinha em cima,
+ * de olhos grandes e expressivos (estilo pet virtual), com um brotinho na cabeça que cresce
  * com a idade (broto → folhinha → duas folhas → florzinha). Os olhos seguem o dedo,
  * piscam e mudam com o humor. As roupas são camadas por cima.
  */
@@ -11,7 +12,8 @@ export function colorOf(id) {
   return COLORS.find((c) => c.id === id) || COLORS[0];
 }
 
-const BODY = "M100 34 C146 34 176 86 179 136 C181 170 158 182 100 182 C42 182 19 170 21 136 C24 86 54 34 100 34 Z";
+// corpo de gota: topo estreito e arredondado, base larga e achatada, sem braços nem pernas
+const BODY = "M100 32 C132 32 150 66 162 104 C174 140 186 168 164 180 C146 188 54 188 36 180 C14 168 26 140 38 104 C50 66 68 32 100 32 Z";
 
 function sprout(stage) {
   const stem = `<path d="M100 36 Q98 24 102 14" stroke="#5aa85a" stroke-width="4" fill="none" stroke-linecap="round"/>`;
@@ -34,35 +36,35 @@ function sprout(stage) {
 
 function eyes(mood, look, lidColor) {
   const lx = look.x * 5, ly = look.y * 4;
-  const open = (rx = 15, ry = 18, pr = 9) => [72, 128].map((cx) => `
+  const open = (rx = 19, ry = 23, pr = 10) => [77, 123].map((cx) => `
     <g class="eye">
-      <ellipse cx="${cx}" cy="98" rx="${rx}" ry="${ry}" fill="#fff" stroke="${INK}" stroke-width="3"/>
-      <g class="pupil" style="transform:translate(${lx}px,${ly}px)">
-        <circle cx="${cx}" cy="101" r="${pr}" fill="${INK}"/>
-        <circle cx="${cx + 3}" cy="96" r="${pr * 0.38}" fill="#fff"/>
-        <circle cx="${cx - 3}" cy="105" r="${pr * 0.16}" fill="#fff"/>
+      <ellipse cx="${cx}" cy="92" rx="${rx}" ry="${ry}" fill="#fff" stroke="${INK}" stroke-width="2.5"/>
+      <g class="pupil" style="transform:translate(${lx * 1.3}px,${ly * 1.3}px)">
+        <circle cx="${cx}" cy="96" r="${pr}" fill="#1d1418"/>
+        <circle cx="${cx + 3.5}" cy="91" r="${pr * 0.36}" fill="#fff"/>
+        <circle cx="${cx - 3}" cy="100" r="${pr * 0.15}" fill="#fff"/>
       </g>
     </g>`).join("");
-  const arcs = (up = true) => [72, 128].map((cx) =>
-    `<path d="${up ? `M${cx - 12} 102 Q${cx} 88 ${cx + 12} 102` : `M${cx - 12} 96 Q${cx} 108 ${cx + 12} 96`}" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`).join("");
-  const lids = [72, 128].map((cx) =>
-    `<path d="M${cx - 16} 98 C${cx - 16} 78 ${cx + 16} 78 ${cx + 16} 98 Z" fill="${lidColor}" stroke="${INK}" stroke-width="3"/>`).join("");
+  const arcs = (up = true) => [77, 123].map((cx) =>
+    `<path d="${up ? `M${cx - 14} 98 Q${cx} 82 ${cx + 14} 98` : `M${cx - 14} 92 Q${cx} 106 ${cx + 14} 92`}" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`).join("");
+  const lids = [77, 123].map((cx) =>
+    `<path d="M${cx - 20} 94 C${cx - 20} 64 ${cx + 20} 64 ${cx + 20} 94 Z" fill="${lidColor}" stroke="${INK}" stroke-width="3"/>`).join("");
   switch (mood) {
     case "dormindo": return arcs(false) + `<g class="zzz"><text x="150" y="60">z</text><text x="162" y="44">z</text><text x="172" y="30">Z</text></g>`;
     case "sereno": case "carinho": return arcs(true);
     case "rindo": return arcs(true);
-    case "sonolento": return open(15, 18, 9) + lids;
-    case "assustado": return open(17, 21, 5);
-    case "triste": return open(14, 17, 9) + `<path d="M58 78 L84 84 M142 78 L116 84" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/>`;
-    case "bravo": return open(14, 16, 8) + `<path d="M58 80 L86 90 M142 80 L114 90" stroke="${INK}" stroke-width="4.5" stroke-linecap="round"/>`;
-    case "curioso": return open(15, 18, 9) + `<path d="M116 74 Q128 66 140 74" stroke="${INK}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
-    case "doente": return open(13, 14, 7) + `<path d="M60 84 L84 88 M140 84 L116 88" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+    case "sonolento": return open(19, 23, 10) + lids;
+    case "assustado": return open(21, 26, 5);
+    case "triste": return open(18, 21, 10) + `<path d="M60 62 L88 70 M140 62 L112 70" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/>`;
+    case "bravo": return open(18, 19, 9) + `<path d="M58 66 L92 78 M142 66 L108 78" stroke="${INK}" stroke-width="4.5" stroke-linecap="round"/>`;
+    case "curioso": return open(19, 24, 10) + `<path d="M106 60 Q123 50 140 60" stroke="${INK}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    case "doente": return open(17, 17, 8) + `<path d="M60 70 L88 74 M140 70 L112 74" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
     default: return open();
   }
 }
 
 function mouth(mood, eating) {
-  if (eating) return `<ellipse class="boca-comendo" cx="100" cy="136" rx="13" ry="12" fill="#7a2d43" stroke="${INK}" stroke-width="3"/><ellipse cx="100" cy="142" rx="7" ry="4" fill="#ff8fa8"/>`;
+  if (eating) return `<ellipse class="boca-comendo" cx="100" cy="138" rx="12" ry="11" fill="#7a2d43" stroke="${INK}" stroke-width="3"/><ellipse cx="100" cy="142" rx="7" ry="4" fill="#ff8fa8"/>`;
   switch (mood) {
     case "feliz": case "rindo":
       return `<path d="M82 128 Q100 152 118 128 Z" fill="#7a2d43" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><path d="M90 139 Q100 146 110 139 Q100 134 90 139Z" fill="#ff8fa8"/>`;
@@ -92,10 +94,10 @@ function clothes(outfit = {}) {
   if (c === "listrada") parts.corpo = `<clipPath id="corpoClip"><path d="${BODY}"/></clipPath><g clip-path="url(#corpoClip)"><rect x="0" y="150" width="200" height="40" fill="#ff7b7b"/>${[156, 168, 180].map((y) => `<rect x="0" y="${y}" width="200" height="5" fill="#fff"/>`).join("")}</g>`;
 
   const o = outfit.olhos;
-  if (o === "redondo") parts.olhos = `<g fill="none" stroke="#6b4b2a" stroke-width="4"><circle cx="72" cy="98" r="22"/><circle cx="128" cy="98" r="22"/><path d="M94 96 Q100 90 106 96"/></g>`;
-  if (o === "sol") parts.olhos = `<g stroke="${INK}" stroke-width="3"><path d="M48 86 H96 Q96 118 72 118 Q48 118 48 86Z M104 86 H152 Q152 118 128 118 Q104 118 104 86Z" fill="#1e1e2e"/><path d="M96 90 H104"/></g><path d="M56 92 L66 92" stroke="#fff" stroke-width="3" opacity=".6"/>`;
-  if (o === "coracao") parts.olhos = [72, 128].map((x) => `<path transform="translate(${x} 98) scale(1.25)" d="M0 14 C-22 0 -14 -18 0 -8 C14 -18 22 0 0 14Z" fill="#ff5c8a" fill-opacity=".85" stroke="#c22d5c" stroke-width="2.5"/>`).join("") + `<path d="M90 94 H110" stroke="#c22d5c" stroke-width="3"/>`;
-  if (o === "estrela") parts.olhos = [72, 128].map((x) => `<path transform="translate(${x} 99)" d="M0 -22 L6 -7 L22 -7 L9 3 L14 19 L0 9 L-14 19 L-9 3 L-22 -7 L-6 -7Z" fill="#ffd84d" fill-opacity=".8" stroke="#d9a400" stroke-width="2.5" stroke-linejoin="round"/>`).join("");
+  if (o === "redondo") parts.olhos = `<g fill="none" stroke="#6b4b2a" stroke-width="4"><circle cx="77" cy="92" r="25"/><circle cx="123" cy="92" r="25"/><path d="M98 90 Q100 86 102 90"/></g>`;
+  if (o === "sol") parts.olhos = `<g stroke="${INK}" stroke-width="3"><path d="M50 78 H99 Q99 114 75 114 Q50 114 50 78Z M101 78 H150 Q150 114 125 114 Q101 114 101 78Z" fill="#1e1e2e"/><path d="M98 82 H102"/></g><path d="M58 86 L68 86" stroke="#fff" stroke-width="3" opacity=".6"/>`;
+  if (o === "coracao") parts.olhos = [77, 123].map((x) => `<path transform="translate(${x} 92) scale(1.4)" d="M0 14 C-22 0 -14 -18 0 -8 C14 -18 22 0 0 14Z" fill="#ff5c8a" fill-opacity=".85" stroke="#c22d5c" stroke-width="2.5"/>`).join("") + `<path d="M96 88 H104" stroke="#c22d5c" stroke-width="3"/>`;
+  if (o === "estrela") parts.olhos = [77, 123].map((x) => `<path transform="translate(${x} 93) scale(1.1)" d="M0 -22 L6 -7 L22 -7 L9 3 L14 19 L0 9 L-14 19 L-9 3 L-22 -7 L-6 -7Z" fill="#ffd84d" fill-opacity=".8" stroke="#d9a400" stroke-width="2.5" stroke-linejoin="round"/>`).join("");
 
   const h = outfit.cabeca;
   if (h === "laco") parts.cabeca = `<g transform="translate(138 52) rotate(20)"><path d="M0 0 L-22 -12 L-22 12 Z M0 0 L22 -12 L22 12 Z" fill="#ff6fa5" stroke="#d13f7a" stroke-width="2.5" stroke-linejoin="round"/><circle r="6" fill="#d13f7a"/></g>`;
@@ -133,16 +135,15 @@ export function bubuSVG(opts) {
     <ellipse cx="100" cy="188" rx="64" ry="8" fill="#000" opacity=".12" class="sombra"/>
     ${cl.back}
     <g class="corpo">
-      <g class="pes"><ellipse cx="72" cy="180" rx="18" ry="9" fill="${col.d}" stroke="${INK}" stroke-width="3"/><ellipse cx="128" cy="180" rx="18" ry="9" fill="${col.d}" stroke="${INK}" stroke-width="3"/></g>
-      <g class="bracos"><ellipse class="braco-e" cx="26" cy="136" rx="10" ry="15" fill="${col.c}" stroke="${INK}" stroke-width="3" transform="rotate(25 26 136)"/><ellipse class="braco-d" cx="174" cy="136" rx="10" ry="15" fill="${col.c}" stroke="${INK}" stroke-width="3" transform="rotate(-25 174 136)"/></g>
       <g class="broto">${sprout(fase)}</g>
       <path d="${BODY}" fill="${col.c}" stroke="${INK}" stroke-width="3.5"/>
       <path d="${BODY}" fill="url(#brilho)"/>
-      <ellipse cx="70" cy="62" rx="16" ry="9" fill="#fff" opacity=".45" transform="rotate(-25 70 62)"/>
+      <ellipse cx="74" cy="56" rx="14" ry="7" fill="#fff" opacity=".4" transform="rotate(-35 74 56)"/>
+      <path d="M40 150 C46 170 70 178 100 178 C130 178 154 170 160 150 C160 174 140 184 100 184 C60 184 40 174 40 150 Z" fill="${col.d}" opacity=".35"/>
       ${doente ? `<path d="${BODY}" fill="#9fdc7a" opacity=".35"/>` : ""}
       ${dirt}
       ${cl.corpo}
-      <g class="bochechas"><ellipse cx="52" cy="124" rx="12" ry="7" fill="#ff8fab" opacity=".55"/><ellipse cx="148" cy="124" rx="12" ry="7" fill="#ff8fab" opacity=".55"/></g>
+      <g class="bochechas"><ellipse cx="52" cy="128" rx="11" ry="6" fill="#ff8fab" opacity=".45"/><ellipse cx="148" cy="128" rx="11" ry="6" fill="#ff8fab" opacity=".45"/></g>
       <g class="olhos">${eyes(humor, olhar, col.c)}</g>
       <g class="boca">${mouth(humor, comendo)}</g>
       ${humor === "triste" ? `<path class="lagrima" d="M60 116 q-5 9 0 12 q5 -3 0 -12z" fill="#7cc7ff"/>` : ""}

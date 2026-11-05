@@ -9,13 +9,40 @@ sem loja. Funciona offline depois da primeira visita.
 
 ![Telas do Bubu](docs/telas/resumo.png)
 
+<table>
+<tr>
+<td align="center"><img src="docs/telas/conta.png" width="200"><br><sub>Conta (salva na nuvem)</sub></td>
+<td align="center"><img src="docs/telas/cadastro.png" width="200"><br><sub>Pré-cadastro</sub></td>
+<td align="center"><img src="docs/telas/ovo.png" width="200"><br><sub>Choque o ovinho</sub></td>
+<td align="center"><img src="docs/telas/sala.png" width="200"><br><sub>Sala</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/telas/cozinha.png" width="200"><br><sub>Cozinha: arraste a comida</sub></td>
+<td align="center"><img src="docs/telas/banheiro.png" width="200"><br><sub>Banheiro: sabão e chuveiro</sub></td>
+<td align="center"><img src="docs/telas/quarto.png" width="200"><br><sub>Quarto: luz e cérebro</sub></td>
+<td align="center"><img src="docs/telas/fora.png" width="200"><br><sub>Lá fora: jogos e bola</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/telas/guarda-roupa.png" width="200"><br><sub>Guarda-roupa</sub></td>
+<td align="center"><img src="docs/telas/fundos.png" width="200"><br><sub>Trocar o fundo 🎨</sub></td>
+<td align="center"><img src="docs/telas/jogo.png" width="200"><br><sub>Mini-jogo</sub></td>
+<td align="center"><img src="docs/telas/conversa.png" width="200"><br><sub>Conversar e ensinar</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/telas/criacoes.png" width="200"><br><sub>O que ele cria sozinho</sub></td>
+<td align="center"><img src="docs/telas/cerebro.png" width="200"><br><sub>O cérebro ao vivo 🧠</sub></td>
+<td align="center"><img src="docs/telas/ouvindo.png" width="200"><br><sub>Ele te ouvindo 🎤</sub></td>
+<td></td>
+</tr>
+</table>
+
 ## O que já tem
 
 | | |
 |---|---|
 | **Conta** | Quando o app roda no servidor, você cria uma conta (usuário e senha) e o Bubu fica salvo na nuvem: entra em outro celular e ele está lá. Sem servidor (ou sem internet) o jogo continua salvando no aparelho. |
 | **Pré-cadastro** | Seu nome, nome do bichinho, aniversário (ele lembra e dá parabéns) e a cor do ovinho (o padrão é marrom). Dá para ter vários jogadores no mesmo celular. |
-| **Jeito dele** | Marrom, fofinho, sem gênero. Os olhos têm vida própria: seguem o seu dedo e, quando você para, olham a bola, para onde ele anda ou ficam passeando conforme o humor. |
+| **Jeito dele** | Uma gotinha marrom e fofinha, larga embaixo e redonda em cima, sem gênero, com olhos grandes e um brotinho na cabeça que cresce com a idade. Os olhos têm vida própria: seguem o seu dedo e, quando você para, olham a bola, para onde ele anda ou ficam passeando conforme o humor. |
 | **Fundo** | O botão 🎨 troca o papel de parede de cada cômodo (e o céu lá fora). Alguns são de graça, outros custam moedas. |
 | **Ciclo de vida** | Ovo (toque para aquecer) → bebê → criança → jovem → adulto → vovô → fim. O brotinho da cabeça cresce: broto, folhinha, duas folhas, flor. Bebê fala "bubês" (com tradução embaixo). |
 | **Cômodos** | Sala, cozinha, banheiro, quarto e lá fora (o céu segue a hora real). Troque com as setas ou deslizando o dedo. |
@@ -26,7 +53,17 @@ sem loja. Funciona offline depois da primeira visita.
 | **Aprender** | Ele pergunta coisas ("qual sua cor favorita?", "o que é saudade?", "como foi seu dia?") e lembra depois. Você ensina palavras ("gato é um bichinho que mia") e truques (diz um comando e dá 👍/👎 até ele acertar). |
 | **Criações** | Ele cria sozinho a partir do que você ensina: pensamentos e poemas (com as suas palavras), desenhos (com as cores e coisas que conhece), invenções (misturando duas palavras) e musiquinhas. Dê 👍 no que gostar e ele faz mais daquilo. |
 | **Cérebro** | No quarto, o botão 🧠 abre a tela do cérebro: todos os neurônios e ligações, piscando ao vivo. Toque num grupo para ver de onde vêm e para onde vão as ligações dele; arraste e use +/− para dar zoom. |
-| **Voz** | Ele fala em voz alta (pode desligar no menu). No chat dá para falar pelo microfone, se o navegador permitir. |
+| **Sons** | Tudo tem som, feito na hora pelo navegador (sem arquivos): mastigar, espuma, chuveiro, carinho, cutucada, luz, moedas, compras, vitória nos jogos, o ovinho chocando e a "voz" de bichinho quando ele fala. Liga e desliga no menu. |
+| **Ele te ouve** | Toque no 🎤 da cena e fale: ele ouve, entende e responde (também funciona no chat). O microfone **desliga sozinho** quando você termina a frase, depois de alguns segundos em silêncio, se você tocar no botão de novo, ou se o app for para o fundo, a tela apagar ou você trocar de aba. Ele nunca fica escutando em segundo plano. |
+| **Voz** | Ele fala em voz alta (pode desligar no menu; aí ele fala "na língua dele", com bipes). |
+
+### Microfone no celular
+
+- Precisa de **HTTPS** (no seu domínio com o instalador já fica assim) e da permissão de microfone.
+- **Android (Chrome):** funciona no navegador e no app instalado. O reconhecimento de voz usa a internet.
+- **iPhone:** funciona no Safari. Instalado na tela inicial, o iOS às vezes bloqueia o reconhecimento de voz; se o
+  🎤 avisar que não dá, use pelo Safari ou converse pelo chat.
+- O app pede o microfone só na hora que você toca no 🎤, e solta logo depois da frase (o indicador do celular apaga).
 
 ## Instalar na sua VPS (com conta e banco)
 
