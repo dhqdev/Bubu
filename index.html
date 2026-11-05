@@ -20,6 +20,22 @@
 </head>
 <body>
   <div id="app">
+    <!-- Conta (quando o app roda com servidor) -->
+    <section id="tela-conta" class="tela oculto">
+      <div class="inicio-topo">
+        <div class="logo">Bubu</div>
+        <div class="conta-bubu" id="conta-bubu"></div>
+      </div>
+      <div class="cartao conta-cartao">
+        <div class="conta-abas">
+          <button type="button" class="conta-aba sel" data-aba="entrar">Entrar</button>
+          <button type="button" class="conta-aba" data-aba="criar">Criar conta</button>
+        </div>
+        <form id="conta-form"></form>
+      </div>
+      <button type="button" class="link" id="conta-local">Jogar sem conta (só neste aparelho)</button>
+    </section>
+
     <!-- Tela inicial / escolher jogador -->
     <section id="tela-inicio" class="tela">
       <div class="inicio-topo">
@@ -29,6 +45,7 @@
       </div>
       <div class="inicio-perfis" id="perfis"></div>
       <button class="btn grande" id="btn-novo">Novo jogador</button>
+      <button type="button" class="link oculto" id="btn-conta">Entrar com a minha conta</button>
     </section>
 
     <!-- Pré-cadastro -->
@@ -73,6 +90,7 @@
         <div class="balao oculto" id="balao"></div>
         <div class="fx" id="fx"></div>
         <div class="escuro" id="escuro"></div>
+        <button class="btn-fundo" id="btn-fundo" aria-label="trocar o fundo">🎨</button>
       </main>
       <footer class="acoes" id="acoes"></footer>
     </section>
@@ -81,6 +99,7 @@
   <div class="sheet-fundo oculto" id="sheet-fundo"></div>
   <div class="sheet oculto" id="sheet" role="dialog" aria-modal="true"></div>
   <div class="jogo oculto" id="jogo"></div>
+  <div class="cerebro-tela oculto" id="cerebro-tela"></div>
   <div class="toast" id="toast"></div>
   <div class="arrastando" id="arrastando"></div>
 

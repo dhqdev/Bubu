@@ -67,7 +67,7 @@ export function newSave({ dono, bubu, cor, aniversario }) {
     moedas: 60,
     comidas: { maca: 3, banana: 2, leite: 2, pao: 1, cenoura: 1 },
     roupas: [],
-    cores: ["pessego", "lilas", "menta", "ceu", "rosa", "banana"],
+    cores: ["marrom", "pessego", "lilas", "menta", "ceu", "rosa", "banana"],
     roupa: {},
     luz: true,
     dormindo: false,

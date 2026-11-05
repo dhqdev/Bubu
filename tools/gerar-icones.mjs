@@ -3,10 +3,10 @@ import { writeFileSync } from "node:fs";
 import { bubuSVG } from "../js/bubu-svg.js";
 import { chromium } from "playwright";
 
-const inner = bubuSVG({ cor: "pessego", humor: "feliz", fase: "adulto" })
+const inner = bubuSVG({ cor: "marrom", humor: "feliz", fase: "adulto" })
   .replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 const icon = (pad, round) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="${round}" fill="#ffd9e4"/>
+<rect width="512" height="512" rx="${round}" fill="#ffe9d6"/>
 <circle cx="256" cy="300" r="210" fill="#fff" opacity=".55"/>
 <svg x="${pad}" y="${pad}" width="${512 - pad * 2}" height="${512 - pad * 2}" viewBox="-10 -14 220 214">${inner}</svg></svg>`;
 writeFileSync("icons/icon.svg", icon(40, 110));

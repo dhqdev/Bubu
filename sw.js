@@ -1,9 +1,9 @@
 // Service worker: deixa o Bubu abrir sem internet (cache do app) e atualiza em segundo plano.
-const CACHE = "bubu-v1";
+const CACHE = "bubu-v2";
 const FILES = [
   "./", "index.html", "manifest.webmanifest", "css/app.css",
   "js/main.js", "js/brain.js", "js/life.js", "js/mind.js", "js/items.js", "js/store.js", "js/util.js", "js/bubu-svg.js",
-  "js/games/catch.js", "js/games/memory.js", "js/games/bubbles.js", "js/games/jump.js", "js/vendor/qrcode.js",
+  "js/games/catch.js", "js/games/memory.js", "js/games/bubbles.js", "js/games/jump.js", "js/vendor/qrcode.js", "js/criatividade.js", "js/brain-view.js", "js/conta.js",
   "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png",
 ];
 
@@ -20,6 +20,7 @@ self.addEventListener("activate", (e) => {
 // rede primeiro (pega a versão nova), cache se estiver offline
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  if (new URL(e.request.url).pathname.includes("/api/")) return; // API sempre na rede
   e.respondWith(
     fetch(e.request)
       .then((res) => {
