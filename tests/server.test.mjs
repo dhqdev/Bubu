@@ -15,7 +15,7 @@ test("senha com scrypt", async () => {
 
 if (URL_DB) {
   before(async () => {
-    pool = createPool(URL_DB);
+    pool = await createPool(URL_DB);
     await pool.query("DROP TABLE IF EXISTS saves, sessoes, contas");
     await migrate(pool);
     server = createServer(pool);

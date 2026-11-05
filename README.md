@@ -84,7 +84,7 @@ Não precisa instalar nenhuma dependência para isso (só Node.js 18+).
 
 ### Opção 2: link público com HTTPS (para instalar como app)
 
-O repositório já tem a publicação automática no **GitHub Pages** (`.github/workflows/pages.yml`):
+O repositório já tem a publicação automática no **GitHub Pages** (`.github/workflows/release.yml`):
 
 1. No GitHub, abra **Settings → Pages** e em **Source** escolha **GitHub Actions**.
 2. Faça merge na `main`. Em 1 ou 2 minutos o site fica em `https://dhqdev.github.io/Bubu/`.

@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL && process.env.DATABASE_URL_FILE) {
 }
 
 const PORT = Number(process.env.PORT || 3000);
-const pool = createPool();
+const pool = await createPool();
 await waitFor(pool);
 await migrate(pool);
 
